@@ -20,18 +20,14 @@ class Exec extends Subsystem
 
     public function run($cmd, $pty = null, array $env = array(), $width = 80, $height = 25, $width_height_type = SSH2_TERM_UNIT_CHARS)
     {
-        $cmd .= ';echo -ne "[return_code:$?]"';
         $stdout = ssh2_exec($this->getResource(), $cmd, $pty, $env, $width, $height, $width_height_type);
         $stderr = ssh2_fetch_stream($stdout, SSH2_STREAM_STDERR);
         stream_set_blocking($stderr, true);
         stream_set_blocking($stdout, true);
-
-        $output = stream_get_contents($stdout);
-        preg_match('/\[return_code:(.*?)\]/', $output, $match);
-        if ((int) $match[1] !== 0) {
-            throw new RuntimeException(stream_get_contents($stderr), (int) $match[1]);
+        $error = stream_get_contents($stderr);
+        if ($error !== '') {
+            throw new RuntimeException($error);
         }
-
-        return preg_replace('/\[return_code:(.*?)\]/', '', $output);
+        return stream_get_contents($stdout);
     }
 }
